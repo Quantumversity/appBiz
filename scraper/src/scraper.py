@@ -21,7 +21,8 @@ class UrlCrawler:
             response = requests.get(url, headers=headers)
             response.raise_for_status()
             self.content = response.text
-            print(f"fetched content: {self.content[:100]}...")  # Print the first 100 characters
+            print(f"fetched content: {self.content[:200]}...")  # Print the first 100 characters
+            self.write_to_file("out/fetched_content.txt", self.content)
             return True
         except requests.RequestException as e:
             print(f"Error fetching URL: {e}")
@@ -55,7 +56,8 @@ class UrlCrawler:
 
         # Get text content
         text = soup.get_text()
-        
+        print("4, text=", text[:100])
+
         # Clean up the text while preserving heading tags
         lines = []
         for line in text.splitlines():
@@ -66,15 +68,27 @@ class UrlCrawler:
                 else:
                     chunks = [phrase.strip() for phrase in line.split("  ")]
                     lines.extend(chunk for chunk in chunks if chunk)
-        
+
+        print("5")
         self.clean_text = '\n'.join(lines)
+        print("6, cleaned text:", self.clean_text[:100])
         return True
 
     def get_text(self, url):
         """Main method to fetch and clean URL content"""
         if self.fetch_url(url) and self.clean_content():
+            print("Content fetched and cleaned successfully.")
             return self.clean_text
         return None
+
+    def write_to_file(self, file_path, text):
+        """Write the cleaned text to a file"""
+        try:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(text)
+            print(f"Content has been written to {file_path}")
+        except IOError as e:
+            print(f"Error writing to file {file_path}: {e}")
 
 def main():
     crawler = UrlCrawler()
@@ -91,20 +105,9 @@ def main():
     output_filename = re.sub(r'/.*$', '', output_filename)
     output_filename = re.sub(r'[^a-zA-Z0-9_-]', '_', output_filename) + ".txt"
     output_filename = os.path.join(out_folder, output_filename)
-
-    try:
-        with open(output_filename, 'w', encoding='utf-8') as f:
-            text = crawler.get_text(url)
-            if text:
-                f.write("Cleaned text content:\n")
-                f.write("-" * 50 + "\n")
-                f.write(text)
-                print(f"\nContent has been written to {output_filename}")
-            else:
-                f.write("Failed to retrieve and clean the content.")
-                print(f"\nError message has been written to {output_filename}")
-    except IOError as e:
-        print(f"Error writing to file {output_filename}: {e}")
+    
+    text = crawler.get_text(url)
+    crawler.write_to_file(output_filename, text)
 
 if __name__ == "__main__":
     main()
